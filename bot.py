@@ -99,7 +99,7 @@ async def produce(queue, client, user):
     @client.on(events.NewMessage(chats=settings.CHAT_NAME, outgoing=True))
     async def outgoing_message_handler(event):
         message_obj = event.message
-        if 'halt' in message_obj.message.lower():
+        if settings.SECRET_STOP_WORD in message_obj.message.lower():
             await client.disconnect()
             checker.cancel()
 
@@ -134,4 +134,6 @@ if __name__ == '__main__':
         logger.info('Starting...')
         asyncio.run(main())
     except KeyboardInterrupt:
+        pass
+    finally:
         logger.info('Finishing...')

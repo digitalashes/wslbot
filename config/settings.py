@@ -11,6 +11,8 @@ PHONE_NUMBER = env.str('PHONE_NUMBER')
 CHAT_NAME = env.str('CHAT_NAME')
 MAX_DISTANCE = env.int('MAX_DISTANCE')
 HUNGER_LEVEL = env.int('HUNGER_LEVEL')
+SECRET_STOP_WORD = env.str('SECRET_STOP_WORD', '').lower()
+assert SECRET_STOP_WORD, 'Secret stop word must be present'
 
 SKIP_MESSAGES = [
     'Тебя ждут более сильные враги и опасные ситуации.',
