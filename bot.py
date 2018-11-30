@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import re
 from functools import partial
 from itertools import chain
 
@@ -51,7 +52,7 @@ async def consume(queue, user):
             await user.eat(logger)
             queue.task_done()
             continue
-        if any(word in message for word in settings.COMBAT_MESSAGES) or \
+        if any(re.search(pattern, message) for pattern in settings.COMBAT_MESSAGES) or \
                 user.ACTIONS_MAPPING['attack'] in available_buttons:
             logger.info('Attacking')
             await user.attack()
@@ -91,7 +92,7 @@ async def produce(queue, client, user):
     async def incoming_message_handler(event):
         message_obj = event.message
         message_text = message_obj.message
-        if any(word in message_text for word in settings.SKIP_MESSAGES):
+        if any(re.search(pattern, message_text) for pattern in settings.SKIP_MESSAGES):
             return
         await queue.put(message_obj)
         logger.info(f'Incoming message. {message_text[:150]}...')
