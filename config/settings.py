@@ -11,6 +11,7 @@ PHONE_NUMBER = env.str('PHONE_NUMBER')
 CHAT_NAME = env.str('CHAT_NAME')
 MAX_DISTANCE = env.int('MAX_DISTANCE')
 HUNGER_LEVEL = env.int('HUNGER_LEVEL')
+SKIP_FOOD = [bytes(e, 'utf-8').decode('unicode_escape') for e in env.list('SKIP_FOOD', subcast=str)]
 SECRET_STOP_WORD = env.str('SECRET_STOP_WORD', '').lower()
 assert SECRET_STOP_WORD, 'Secret stop word must be present'
 

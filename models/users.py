@@ -83,6 +83,8 @@ class User:
         food = filter(None, re.split(r'\n', food))
         for item in food:
             name = re.findall(r'\s(.*?)[(|/]', item)[0].strip()
+            if name in settings.SKIP_FOOD:
+                continue
             try:
                 count = int(re.findall(r'\((\d+)\)', item)[0])
             except IndexError:
