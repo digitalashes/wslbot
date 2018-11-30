@@ -92,10 +92,12 @@ async def produce(queue, client, user):
     async def incoming_message_handler(event):
         message_obj = event.message
         message_text = message_obj.message
-        if any(re.search(pattern, message_text) for pattern in settings.SKIP_MESSAGES):
+        if any(re.search(pattern, message_text) for pattern in settings.SKIP_MESSAGES) or \
+                message_obj.photo is not None:
             return
-        await queue.put(message_obj)
-        logger.info(f'Incoming message. {message_text[:150]}...')
+        else:
+            await queue.put(message_obj)
+            logger.info(f'Incoming message. {message_text[:150]}...')
 
     @client.on(events.NewMessage(chats=settings.CHAT_NAME, outgoing=True))
     async def outgoing_message_handler(event):
