@@ -5,6 +5,7 @@ from collections import namedtuple
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import datetime
+from logging import Logger
 from operator import attrgetter
 from typing import Callable
 
@@ -26,6 +27,7 @@ class User:
         'step': '👣Идти дaльше',
     }
     _send: Callable
+    logger: Logger
     name: str = ''
     hp_min: int = 0
     hp_max: int = 0
@@ -52,13 +54,22 @@ class User:
 
     @property
     def is_hungry(self):
-        return self.hunger > settings.HUNGER_LEVEL
+        result = self.hunger > settings.HUNGER_LEVEL
+        if result:
+            self.logger.warning(f'You are hungry. Hunger level - {self.hunger}')
+        return result
 
     @property
     def in_camp(self):
         return self.location == 'Лагерь'
 
+    @property
+    def in_new_rino(self):
+        return self.location == 'Нью-Рино'
+
     async def update_info(self, message):
+        self.logger.info(f'Update info')
+
         self.name = re.search(r'\n\w+\n[^👥Фракция]?', message)[0].strip()
         hp = re.findall(r'[\n]❤️Здоровье:\s*([^\n\r]*)', message)[0]
         self.hp_min, self.hp_max = map(int, hp.split('/'))
@@ -69,6 +80,8 @@ class User:
         self.distance = int(re.findall(r'[\n]👣Расстояние:\s*([^\n\r]*)', message)[0])
 
     async def update_stats(self, message):
+        self.logger.info(f'Update stats')
+
         hp = re.findall(r'[❤]️(\d{1,4}/\d{1,4})', message)[0]
         self.hp_min, self.hp_max = map(int, hp.split('/'))
         self.hunger = int(re.findall(r'[\s]🍗([^\n\r][^%]*)', message)[0])
@@ -79,6 +92,8 @@ class User:
             self.location = re.findall(r'^.*[^\n❤️]', message)[0]
 
     async def update_food(self, message):
+        self.logger.info('Update food')
+
         food = re.split(r'Вещества', re.split(r'Пища', message)[1])[0]
         food = filter(None, re.split(r'\n', food))
         for item in food:
@@ -95,21 +110,22 @@ class User:
             )
 
     async def update_hungry_level(self, message):
+        self.logger.info(f'Update hungry level')
         self.hunger = int(re.findall(r'[:\s]\d+[^%]', message)[0])
 
-    async def eat(self, logger):
+    async def eat(self):
         try:
             self.available_food.sort(key=attrgetter('count'), reverse=True)
             food = self.available_food.pop(0)
         except IndexError:
-            logger.info('Searching food...')
+            self.logger.info('Searching food...')
             await self.my_food()
         else:
             if food.count > 1:
                 count = food.count - 1
                 food = food._replace(count=count)
                 self.available_food.append(food)
-            logger.info(f'Eating {food.name}')
+            self.logger.info(f'Eating {food.name}')
             await self.send(food.command)
 
     async def send(self, command):
@@ -117,22 +133,27 @@ class User:
         await self._send(command)
 
     async def attack(self):
+        self.logger.info('Attacking')
         await self.send(self.ACTIONS_MAPPING['attack'])
 
     async def go_ahead(self):
-        if self.in_camp:
-            await self.send(self.ACTIONS_MAPPING['wasteland'])
-        else:
+        self.logger.info('Moving on')
+        if not any([self.in_camp, self.in_new_rino]):
             await self.send(self.ACTIONS_MAPPING['step'])
+        else:
+            await self.send(self.ACTIONS_MAPPING['wasteland'])
 
     async def my_food(self):
         await self.send(self.ACTIONS_MAPPING['my_food'])
 
     async def go_home(self):
+        self.logger.warning('You got too far. Back to the Camp.')
         await self.send(self.ACTIONS_MAPPING['return'])
 
     async def confirm(self):
+        self.logger.info('Home Sweet Home')
         await self.send(self.ACTIONS_MAPPING['return_confirm'])
 
     async def ping(self):
+        self.logger.info('My stats')
         await self.send(self.ACTIONS_MAPPING['pip_boy'])

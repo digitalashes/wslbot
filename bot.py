@@ -11,21 +11,15 @@ from config import settings
 from config.logger import logger
 from models.users import User
 
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-
 
 async def update(user, message):
     if '👥' in message:
-        logger.info(f'Update info')
         await user.update_info(message)
     elif '🍗' in message:
-        logger.info(f'Update stats')
         await user.update_stats(message)
     elif 'ПРИПАСЫ В РЮКЗАКЕ' in message:
-        logger.info('Update food')
         await user.update_food(message)
     elif 'Уровень голода:' in message:
-        logger.info(f'Update hungry level')
         await user.update_hungry_level(message)
     logger.info(repr(user))
 
@@ -36,40 +30,42 @@ async def consume(queue, user):
         message_obj = await queue.get()
         message = message_obj.message
         user.last_message = message_obj.date
+
         try:
             available_buttons = [btn.text for btn in chain(*message_obj.buttons)]
         except TypeError:
             logger.error('Available buttons not found')
             available_buttons = []
+
         await update(user, message)
-        if 'Главарь:' in message:
+
+        if any(re.search(pattern, message) for pattern in settings.CAMP_MESSAGES):
             logger.info('Returned to Camp')
             await user.ping()
             queue.task_done()
             continue
+
         if user.is_hungry:
-            logger.warning(f'User is hungry. Hungry level - {user.hunger}')
-            await user.eat(logger)
+            await user.eat()
             queue.task_done()
             continue
+
         if any(re.search(pattern, message) for pattern in settings.COMBAT_MESSAGES) or \
                 user.ACTIONS_MAPPING['attack'] in available_buttons:
-            logger.info('Attacking')
             await user.attack()
             queue.task_done()
             continue
+
         if 'Уверен, что хочешь отправиться обратно?' in message:
             await user.confirm()
             queue.task_done()
             continue
         elif user.distance >= settings.MAX_DISTANCE:
-            logger.warning('You are close to maximum distances. Return back.')
             await user.go_home()
             queue.task_done()
             continue
 
         await user.go_ahead()
-        logger.info('Moving on')
         queue.task_done()
 
 
@@ -114,7 +110,6 @@ async def main():
     client = await TelegramClient(settings.SESSION_NAME,
                                   settings.API_ID,
                                   settings.API_HASH,
-                                  loop=asyncio.get_event_loop()
                                   ).start(settings.PHONE_NUMBER)
     async with client:
         if not await client.is_user_authorized():
@@ -123,7 +118,7 @@ async def main():
 
         entity = await client.get_entity(settings.CHAT_NAME)
         send_message = partial(client.send_message, entity)
-        user = User(send_message)
+        user = User(send_message, logger)
         queue = asyncio.Queue()
         logger.info('Preparing...')
         consumer = asyncio.ensure_future(consume(queue, user))
@@ -133,6 +128,7 @@ async def main():
 
 
 if __name__ == '__main__':
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     try:
         logger.info('Starting...')
         asyncio.run(main())
