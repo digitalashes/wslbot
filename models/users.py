@@ -109,8 +109,8 @@ class User:
                 count = food.count - 1
                 food = food._replace(count=count)
                 self.available_food.append(food)
-                logger.info(f'Eating {food.name}')
-                await self.send(food.command)
+            logger.info(f'Eating {food.name}')
+            await self.send(food.command)
 
     async def send(self, command):
         await asyncio.sleep(random.randint(2, 5))
