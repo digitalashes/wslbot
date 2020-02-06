@@ -11,6 +11,10 @@ from typing import Callable
 
 from config import settings
 
+__all__ = [
+    'User',
+]
+
 Food = namedtuple('Food', ['name', 'count', 'command'])
 
 
@@ -45,12 +49,12 @@ class User:
 
     def __repr__(self):
         return f'User({self.name}, ' \
-            f'hp={self.hp_min}/{self.hp_max} ' \
-            f'hunger={self.hunger}, ' \
-            f'stamina={self.stamina_min}/{self.stamina_max}, ' \
-            f'location={self.location}, ' \
-            f'distance={self.distance}, ' \
-            f'last_message={self.last_message.strftime("%Y-%m-%d-%H:%M:%S")})'
+               f'hp={self.hp_min}/{self.hp_max} ' \
+               f'hunger={self.hunger}, ' \
+               f'stamina={self.stamina_min}/{self.stamina_max}, ' \
+               f'location={self.location}, ' \
+               f'distance={self.distance}, ' \
+               f'last_message={self.last_message.strftime("%Y-%m-%d-%H:%M:%S")})'
 
     @property
     def is_hungry(self):
